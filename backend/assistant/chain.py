@@ -3,18 +3,102 @@ RAG Chain 模块 - 组装 LangChain RAG 执行链
 集成: History-Aware Retriever + RAG Chain + Conversation Memory
 支持流式输出 (Streaming SSE)
 """
+import re
 from typing import Dict, Any, List, Generator
 
 from langchain_classic.chains import create_history_aware_retriever, create_retrieval_chain
 from langchain_classic.chains.combine_documents import create_stuff_documents_chain
 from langchain_community.chat_message_histories import ChatMessageHistory
 from langchain_core.chat_history import BaseChatMessageHistory
+from langchain_core.documents import Document
 from langchain_core.runnables.history import RunnableWithMessageHistory
 
 from .config import Settings
 from .llm import create_llm
 from .prompts import create_rag_prompt, create_contextualize_q_prompt
 from .vectorstore import VectorStoreManager
+
+
+# ── 语言检测 ──────────────────────────────────────
+
+def detect_language(text: str) -> str:
+    """
+    检测文本主要语言。
+
+    通过统计中文字符（CJK 统一表意文字）占比来判断，
+    阈值 0.15：超过 15% 的字符为中文则判定为中文。
+
+    Args:
+        text: 待检测文本
+
+    Returns:
+        'zh' 或 'en'
+    """
+    if not text:
+        return "en"
+    chinese_chars = len(re.findall(r"[一-鿿]", text))
+    # 计算非空白字符总数
+    total = len(re.sub(r"\s", "", text))
+    if total == 0:
+        return "en"
+    return "zh" if chinese_chars / total > 0.15 else "en"
+
+
+# ── 语言感知检索器 ────────────────────────────────
+
+class LanguageRerankingRetriever:
+    """
+    包装基础检索器，按语言匹配度重排序结果。
+
+    检索 k*2 个结果后，将与查询同语言的文档优先排列，
+    确保用户看到与问题语言一致的引用来源。
+    """
+
+    def __init__(self, base_retriever, top_k: int = 5):
+        """
+        Args:
+            base_retriever: 基础 Chroma 检索器（k 需 >= top_k * 2）
+            top_k: 最终返回的文档数
+        """
+        self._base = base_retriever
+        self._top_k = top_k
+        self._last_query_lang = "en"
+
+    @property
+    def last_query_language(self) -> str:
+        """获取最近一次查询的语言"""
+        return self._last_query_lang
+
+    def invoke(self, query: str, **kwargs) -> List[Document]:
+        """
+        检索并重排序文档。
+
+        Args:
+            query: 查询文本
+            **kwargs: 传递给基础检索器的额外参数
+
+        Returns:
+            重排序后的文档列表（最多 top_k 个）
+        """
+        docs = self._base.invoke(query, **kwargs)
+        if not docs:
+            return docs
+
+        self._last_query_lang = detect_language(query)
+
+        # 按语言分组，保持各组的原始检索顺序
+        same_lang_docs = []
+        other_lang_docs = []
+        for doc in docs:
+            doc_lang = detect_language(doc.page_content)
+            if doc_lang == self._last_query_lang:
+                same_lang_docs.append(doc)
+            else:
+                other_lang_docs.append(doc)
+
+        # 同语言在前，其他在后，截取 top_k
+        reranked = same_lang_docs + other_lang_docs
+        return reranked[: self._top_k]
 
 
 class RAGChain:
@@ -47,11 +131,16 @@ class RAGChain:
         Args:
             vectorstore_manager: 向量存储管理器
         """
-        self._retriever = vectorstore_manager.as_retriever(
+        # 基础检索器：检索 2 倍数量，供语言重排序筛选
+        base_retriever = vectorstore_manager.as_retriever(
             search_kwargs={
-                "k": self._settings.retrieval_top_k,
+                "k": self._settings.retrieval_top_k * 2,
                 "score_threshold": self._settings.retrieval_score_threshold,
             }
+        )
+        # 包装为语言感知检索器：优先返回与问题同语言的文档
+        self._retriever = LanguageRerankingRetriever(
+            base_retriever, top_k=self._settings.retrieval_top_k
         )
 
         # Step 1: 文档组合链 — 将检索文档 + 问题 → 答案
