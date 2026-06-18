@@ -1,0 +1,69 @@
+"""
+Prompt 模板模块
+"""
+from pathlib import Path
+
+from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
+
+# Prompt 文件目录
+_PROMPTS_DIR = Path(__file__).resolve().parent.parent.parent / "prompts"
+
+
+def load_prompt_file(filename: str) -> str:
+    """加载 Prompt 模板文件"""
+    path = _PROMPTS_DIR / filename
+    if path.exists():
+        return path.read_text(encoding="utf-8")
+    # 返回默认 system prompt
+    return _get_default_system_prompt()
+
+
+def _get_default_system_prompt() -> str:
+    """默认系统提示词"""
+    return """你是一个专业的医疗知识问答助手。你的任务是基于已有医学文献资料，准确、专业地回答用户的医学相关问题。
+
+请严格遵循以下规则：
+1. 只基于下方提供的已有文献资料进行回答，不要使用资料以外的知识
+2. 如果文献资料为空或完全不相关，说明该问题超出了现有医疗知识库的范围，请礼貌地告知用户你只能回答医学相关的问题，并建议用户提出具体的医学问题
+3. 如果文献资料部分相关但不完整，指出已知的相关信息，并说明局限
+4. 回答应该专业、准确、易懂，适当使用医学术语但也要让普通用户能理解
+5. 如果涉及诊断或治疗建议，请务必在回答末尾提醒用户"本回答仅供参考，具体诊疗请咨询专业医生"
+6. 回答尽量简洁但完整，涵盖问题的核心要点
+7. 回答时直接给出结论与分析，不要使用"根据您提供的上下文信息""根据上下文""基于提供的资料"等措辞——改用自然表达，如"根据现有文档""已有研究显示""资料表明"
+
+已有文献资料：
+{context}"""
+
+
+def create_rag_prompt() -> ChatPromptTemplate:
+    """
+    创建 RAG 对话 Prompt 模板
+
+    Returns:
+        ChatPromptTemplate 实例
+    """
+    system_prompt = load_prompt_file("rag_system.txt")
+
+    return ChatPromptTemplate.from_messages(
+        [
+            ("system", system_prompt),
+            MessagesPlaceholder(variable_name="chat_history"),
+            ("human", "{input}"),
+        ]
+    )
+
+
+def create_contextualize_q_prompt() -> ChatPromptTemplate:
+    """
+    创建问题上下文化 Prompt 模板
+    用于将历史对话中的追问改写为独立问题
+    """
+    return ChatPromptTemplate.from_messages(
+        [
+            ("system", """你是一个问题改写助手。给定聊天历史和用户的最新问题，\
+请将这个问题改写为可以独立理解的完整问题。如果最新问题已经足够完整，直接返回原问题。
+不要回答这个问题，只返回改写后的问题文本。"""),
+            MessagesPlaceholder(variable_name="chat_history"),
+            ("human", "请改写以下问题，使其独立完整：{input}"),
+        ]
+    )
