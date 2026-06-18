@@ -69,6 +69,13 @@ class LanguageRerankingRetriever:
         """获取最近一次查询的语言"""
         return self._last_query_lang
 
+    def __getattr__(self, name):
+        """代理未实现的属性到基础检索器（如 with_config 等 LangChain 内部方法）"""
+        # 仅拦截 dunder 方法，放行其他所有属性到 base_retriever
+        if name.startswith("__") and name.endswith("__"):
+            raise AttributeError(name)
+        return getattr(self._base, name)
+
     def invoke(self, query: str, **kwargs) -> List[Document]:
         """
         检索并重排序文档。

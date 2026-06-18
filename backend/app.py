@@ -151,8 +151,9 @@ def chat_stream():
                     headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
                 )
         except Exception as e:
+            err_msg = str(e)  # 捕获到局部变量，避免闭包中 e 被释放
             def err_gen():
-                yield f"data: {json.dumps({'type': 'error', 'data': f'系统初始化失败: {str(e)}'}, ensure_ascii=False)}\n\n"
+                yield f"data: {json.dumps({'type': 'error', 'data': f'系统初始化失败: {err_msg}'}, ensure_ascii=False)}\n\n"
             return Response(
                 err_gen(),
                 mimetype="text/event-stream",
