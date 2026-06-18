@@ -22,5 +22,6 @@ frontend/dist/
 Thumbs.db
 .DS_Store
 
-# Logs
+# Logs / Dev notes
 *.log
+开发记录.txt
