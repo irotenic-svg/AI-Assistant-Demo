@@ -2,32 +2,30 @@
 
 基于 **LangChain + RAG（检索增强生成）** 技术构建的医疗知识问答 Demo，支持中英文双语医学问题检索与回答。
 
-> 本项目的学习目标：熟悉 LangChain 核心模块（LLM、VectorStore、Retriever、Chain、Memory），掌握 RAG 技术在不同数据类型下的应用。
-
 ## 技术架构
 
 ```
 ┌──────────────────────────────────────┐
 │       Vue 3 + Element Plus           │
 │       (Vite :5173)                   │
-│       聊天界面 + 历史记录 + 来源引用    │
+│       聊天界面 + 历史记录 + 来源引用   │
 └──────────────┬───────────────────────┘
                │ HTTP (Axios)
 ┌──────────────▼───────────────────────┐
-│       Flask REST API (:5000)          │
+│       Flask REST API (:5000)         │
 │       POST /api/chat                 │
 │       GET  /api/history              │
 └──────────────┬───────────────────────┘
                │
 ┌──────────────▼───────────────────────┐
-│       LangChain RAG Chain             │
+│       LangChain RAG Chain            │
 │  ┌─────────────────────────────────┐ │
 │  │ ConversationBufferWindowMemory  │ │
 │  ├─────────────────────────────────┤ │
 │  │ create_retrieval_chain          │ │
 │  │  ├── Retriever: Chroma (top-5)  │ │
 │  │  ├── PromptTemplate             │ │
-│  │  └── LLM: DeepSeek V4 Pro       │ │
+│  │  └── LLM: DeepSeek V4 Flash     │ │
 │  ├─────────────────────────────────┤ │
 │  │ Embedding: BGE-M3 (1024维)      │ │
 │  │ VectorStore: Chroma (持久化)    │ │
@@ -39,7 +37,7 @@
 
 | 组件 | 技术 | 说明 |
 |------|------|------|
-| **LLM** | DeepSeek V4 Pro | 通过 OpenAI 兼容接口调用 |
+| **LLM** | DeepSeek V4 Flash | 通过 OpenAI 兼容接口调用 |
 | **Embedding** | BAAI/bge-m3 | 本地 GPU 推理，中英双语，1024 维 |
 | **VectorStore** | Chroma | LangChain 集成，HNSW 索引 |
 | **RAG Framework** | LangChain | create_retrieval_chain + Memory |
