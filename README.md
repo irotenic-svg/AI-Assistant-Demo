@@ -49,9 +49,9 @@
 
 | 数据集 | 语言 | 规模 | 来源 |
 |--------|------|------|------|
-| **cMedQA2** | 中文 | 108K 问 / 188K 答 | 中文社区医疗问答 |
-| **webMedQA** | 中文 | 63K 问 / 12K 答 | 在线医疗咨询网站 |
-| **PubMedQA** | 英文 | 1,000 条 | PubMed 生物医学文献 |
+| **cMedQA2** | 中文 | 108K 问 / 188K 答 | [zhangsheng93/cMedQA2](https://github.com/zhangsheng93/cMedQA2) |
+| **webMedQA** | 中文 | 63K 问 / 12K 答 | [hejunqing/webMedQA](https://github.com/hejunqing/webMedQA) |
+| **PubMedQA** | 英文 | 1,000 条 | [pubmedqa/pubmedqa](https://github.com/pubmedqa/pubmedqa) |
 
 预处理后共 **202,138** 条记录，切分为 **213,540** 个文档块存入 Chroma。
 
@@ -237,6 +237,6 @@ npm run dev
 ## 许可证
 
 本项目仅用于学习研究目的。数据集版权归原作者所有：
-- cMedQA2: [IEEE Access](https://ieeexplore.ieee.org/abstract/document/8548603)
-- webMedQA: [BMC Medical Informatics](https://bmcmedinformdecismak.biomedcentral.com/articles/10.1186/s12911-019-0761-8)
-- PubMedQA: [EMNLP-IJCNLP 2019](https://aclanthology.org/D19-1259/)
+- cMedQA2: [GitHub](https://github.com/zhangsheng93/cMedQA2) | [IEEE Access](https://ieeexplore.ieee.org/abstract/document/8548603)
+- webMedQA: [GitHub](https://github.com/hejunqing/webMedQA) | [BMC Medical Informatics](https://bmcmedinformdecismak.biomedcentral.com/articles/10.1186/s12911-019-0761-8)
+- PubMedQA: [GitHub](https://github.com/pubmedqa/pubmedqa) | [EMNLP-IJCNLP 2019](https://aclanthology.org/D19-1259/)
